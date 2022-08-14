@@ -1,0 +1,28 @@
+app: cookie-lambda-api
+service: cookie-lambda-api
+frameworkVersion: '3'
+
+
+provider:
+  environment:
+    MONGO_URL: ${param:MONGO_URL}
+    MONGO_USER: ${param:MONGO_USER}
+    MONGO_PASS: ${param:MONGO_PASS}
+  name: aws
+  runtime: nodejs14.x
+
+functions:
+  api:
+    handler: handler.handler
+    events:
+      - httpApi: '*'
+
+
+plugins:
+  - serverless-plugin-common-excludes
+  - serverless-plugin-include-dependencies
+  - serverless-offline
+
+package:  
+  excludeDevDependencies: false
+
