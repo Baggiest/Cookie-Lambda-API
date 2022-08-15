@@ -61,7 +61,7 @@ dbConnect().then(async () => {
     try {
 
       handler.payUser(casinoID, userID, amount).then((result) => {
-        let transactionID = uuidv4();
+        const transactionID = uuidv4();
 
         logger.log("casino", amount, userID, transactionID, Math.floor(Date.now() / 100))
         if (result === true) return res.status(200).json({ result: true, from: "casino", to: userData.userTag, amount: amount, transactionID: transactionID });
@@ -92,7 +92,7 @@ dbConnect().then(async () => {
     try {
 
       handler.payUser(userID, casinoID, amount).then((result) => {
-        let transactionID = uuidv4();
+        const transactionID = uuidv4();
 
         logger.log(userID, amount, "casino", transactionID, Math.floor(Date.now() / 100))
         if (result === true) return res.status(200).json({ result: true, from: "casino", to: userData.userTag, amount: amount, transactionID: transactionID });

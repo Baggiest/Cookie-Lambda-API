@@ -7,7 +7,7 @@ module.exports = class Logger {
             from: senderID,
             amount: amount,
             to: receiverID,
-            trantransactionID: tID,
+            transactionID: tID,
             timestamp: time,
             origin: "API"
         })
