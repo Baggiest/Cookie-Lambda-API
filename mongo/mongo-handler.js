@@ -6,8 +6,6 @@ module.exports = class Handler {
 
 
     constructor(caller) {
-
-        console.log(`${caller} is running!`)
     }
 
     async fetchData(ID) {
@@ -86,7 +84,7 @@ module.exports = class Handler {
         }
     }
 
-    async payUser(senderID, receiverID, amount, message) {
+    async payUser(senderID, receiverID, amount) {
 
         if (this.checkExist(senderID) && this.checkExist(receiverID)) {
 

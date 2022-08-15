@@ -1,26 +1,30 @@
 const serverless = require("serverless-http");
 const express = require("express");
-const Users = require('./mongo/users')
 const mongoose = require("mongoose");
+const { v4: uuidv4 } = require('uuid');
 
-const { db } = require("./mongo/users");
+const casinoID = "000000000000000000"
+
 const Handler = require('./mongo/mongo-handler');
+const handler = new Handler()
+const Verifier = require('./src/security')
+const verifier = new Verifier()
+const Logger = require('./src/logger')
+const logger = new Logger()
 
-const handler = new Handler("mongo handler")
 
-
-// const MONGO_URL = process.env.MONGO
+const MONGO_URL = process.env.MONGO_URL
 
 const app = express();
 
 
 async function dbConnect() {
 
-  mongoose.connect(MONGO_TEST_URL, {
+  mongoose.connect(MONGO_URL, {
 
     "auth": { "authSource": "cookies" },
-    "user": MONGO_TEST_USER,
-    "pass": MONGO_TEST_PASS
+    "user": process.env.MONGO_USER,
+    "pass": process.env.MONGO_PASS
   })
 
     .then(() => {
@@ -39,7 +43,72 @@ dbConnect().then(async () => {
     });
   });
 
+  app.post("/payuser/:id&:amount&:key", async (req, res) => {
+
+    let userID = req.params.id
+    let amount = Number(req.params.amount)
+    let key = req.params.key
+
+    let userExists = await handler.checkExist(userID)
+    let keyExists = await verifier.verifySecretKey(key)
+
+    if (!keyExists) return res.status(403).json({ result: false, message: "bad key" })
+    if (!userExists) return res.status(404).json({ result: false, message: "user not found" })
+    if (isNaN(amount)) return res.status(400).json({ result: false, message: "amount value should be a number" })
+
+    let userData = await handler.fetchData(userID)
+
+    try {
+
+      handler.payUser(casinoID, userID, amount).then((result) => {
+        let transactionID = uuidv4();
+
+        logger.log("casino", amount, userID, transactionID, Math.floor(Date.now() / 100))
+        if (result === true) return res.status(200).json({ result: true, from: "casino", to: userData.userTag, amount: amount, transactionID: transactionID });
+      })
+    }
+    catch (e) {
+      console.error(e)
+    }
+
+  });
+
+  app.post("/chargeuser/:id&:amount&:key", async (req, res) => {
+
+    let userID = req.params.id
+    let amount = Number(req.params.amount)
+    let key = req.params.key
+
+    let userExists = await handler.checkExist(userID)
+    let keyExists = await verifier.verifySecretKey(key)
+
+    if (!keyExists) return res.status(403).json({ result: false, message: "bad key" })
+    if (!userExists) return res.status(404).json({ result: false, message: "user not found" })
+    if (isNaN(amount)) return res.status(400).json({ result: false, message: "amount value should be a number" })
+
+
+    let userData = await handler.fetchData(userID)
+
+    try {
+
+      handler.payUser(userID, casinoID, amount).then((result) => {
+        let transactionID = uuidv4();
+
+        logger.log(userID, amount, "casino", transactionID, Math.floor(Date.now() / 100))
+        if (result === true) return res.status(200).json({ result: true, from: "casino", to: userData.userTag, amount: amount, transactionID: transactionID });
+      })
+    }
+    catch (e) {
+      console.error(e)
+    }
+
+  });
+
   app.get("/balance/:id", async (req, res) => {
+
+    if (!handler.checkExist(req.params.id)) return res.status(404).json({
+      message: "user not found in database"
+    })
 
     try {
 
@@ -67,15 +136,12 @@ dbConnect().then(async () => {
     }
   });
 
-  //other functions 
-
 
   app.use((req, res) => {
 
     return res.status(404).json({
 
       error: "Not Found",
-
     });
   });
 })
